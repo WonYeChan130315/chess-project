@@ -9,7 +9,6 @@ public class BoardTheme : ScriptableObject {
     public struct SquareTheme {
         public Color defaultColor;
         public Color highlightColor;
-        public Color fromColor;
-        public Color toColor;
+        public Color moveColor;
     }
 }
