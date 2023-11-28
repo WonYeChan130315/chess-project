@@ -26,12 +26,13 @@ public class GameManager : MonoBehaviour
             pieceIndex = Board.squares[currentIndex];
 
             dragObj = hit.transform.GetChild(0);
+            
             ColoringMouseDown();
         } else if(Input.GetMouseButtonUp(0) && isDragging) {
             isDragging = false;
             ClearBoard();
 
-            if(PieceMovement.IsPossibleMove(currentIndex, targetIndex))
+            if(PieceMovement.IsPossibleMove(currentIndex, targetIndex) && Piece.IsEqualColor(Board.squares[currentIndex], currentOrder))
                 MovePiece();
 
             if(dragObj != null) {
@@ -131,6 +132,14 @@ public class GameManager : MonoBehaviour
     }
 
     public void ColoringMouseDown() {
+        Color fromLightColor = BoardCreator.instance.boardTheme.lightTheme.moveColor;
+        Color fromDarkColor = BoardCreator.instance.boardTheme.darkTheme.moveColor;
+
+        BoardCreator.squareRenderers[currentIndex].color = Board.IsLightSquare(currentIndex) ? fromLightColor : fromDarkColor;
+
+        if(!Piece.IsEqualColor(Board.squares[currentIndex], currentOrder))
+            return;
+
         for(int i = 0; i < BoardCreator.squareRenderers.Length; i++) {
             if(PieceMovement.IsPossibleMove(currentIndex, i)) {
                 bool isLightSquare = Board.IsLightSquare(i);
@@ -141,11 +150,6 @@ public class GameManager : MonoBehaviour
                 BoardCreator.squareRenderers[i].color = isLightSquare ? lightColor : darkColor;
             }
         }
-
-        Color fromLightColor = BoardCreator.instance.boardTheme.lightTheme.moveColor;
-        Color fromDarkColor = BoardCreator.instance.boardTheme.darkTheme.moveColor;
-
-        BoardCreator.squareRenderers[currentIndex].color = Board.IsLightSquare(currentIndex) ? fromLightColor : fromDarkColor;
     }
 
     public void ColoringMouseUp() {

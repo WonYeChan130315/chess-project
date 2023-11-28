@@ -67,7 +67,6 @@ public static class CastlingCheckManager
             return true;
 
         foreach(string move in GameManager.moveList) {
-            var splitMove = GameManager.GetSplitMove(move);
             if(Board.squares[color == Piece.White ? OriginKingIndex : Board.GetOtherSide(OriginKingIndex)] != Piece.King + color)
                 return true;
 
