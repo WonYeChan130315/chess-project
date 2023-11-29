@@ -83,6 +83,10 @@ public class GameManager : MonoBehaviour
             BoardCreator.DrawPiece(isQueenSide ? GetSplitMove(moveStr)[2] + 1 : GetSplitMove(moveStr)[2] - 1, isWhite ? Piece.Rook : Piece.Rook + Piece.Black);
         }
 
+        // 4를 킹 인덱스로 바꿔야한다
+        if(AttackedBySquares.IsAttackedTargetSquare(4))
+            print("check");
+
         ColoringMouseUp();
     }
 
