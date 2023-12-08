@@ -122,8 +122,22 @@ public class GameManager : MonoBehaviour
 
         bool isCastling = isOriginKingPosition && isTargetKingPosition;
 
-        if(isCastling)
+        if(isCastling) {
+            if(isWhite) {
+                if(GetSplitMove(moveStr)[2] == queenSide)
+                    CastlingCheckManager.canWhiteKingSide = false;
+                else
+                    CastlingCheckManager.canWhiteQueenSide = false;
+            } else {
+                if(GetSplitMove(moveStr)[2] == queenSide)
+                    CastlingCheckManager.canBlackKingSide = false;
+                else
+                    CastlingCheckManager.canBlackQueenSide = false;
+            }
+
+
             return GetSplitMove(moveStr)[2] == queenSide ? 1 : 2;
+        }
         
         return 0;
     }
