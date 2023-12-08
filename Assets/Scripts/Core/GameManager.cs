@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,6 +10,10 @@ public class GameManager : MonoBehaviour
     public static int whiteKingIndex = 4;
     public static int blackKingIndex = 60;
 
+    public static bool isLiving = true;
+
+    public TextMeshProUGUI gameResultTxt;
+
     private int pieceIndex;
     private int currentIndex = -1;
     private int targetIndex = -1;
@@ -16,6 +21,9 @@ public class GameManager : MonoBehaviour
     private Transform dragObj;
 
     private void Update() {
+        if(!isLiving)
+            return;
+
         var mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePosition.z = -3;
 
@@ -26,7 +34,7 @@ public class GameManager : MonoBehaviour
                 return;
             
             isDragging = true;
-            ClearBoard(currentIndex);
+            ClearBoard();
 
             currentIndex = int.Parse(hit.collider.name);
             pieceIndex = Board.squares[currentIndex];
@@ -36,7 +44,7 @@ public class GameManager : MonoBehaviour
             ColoringMouseDown();
         } else if(Input.GetMouseButtonUp(0) && isDragging) {
             isDragging = false;
-            ClearBoard(currentIndex);
+            ClearBoard();
                 
             if(PieceMovement.IsPossibleMove(currentIndex, targetIndex) && Piece.IsEqualColor(Board.squares[currentIndex], currentOrder))
                 MovePiece();
@@ -69,6 +77,21 @@ public class GameManager : MonoBehaviour
 
         // 폰
         UpdatePawnMove(moveStr);
+
+        // 체크메이트 감지
+        List<int> attackList = new();
+        for(int i = 0; i < Board.squares.Length; i++)
+            if(Piece.IsEqualColor(Board.squares[i], currentOrder))
+                attackList.AddRange(PieceMovement.MakeMove(i));
+
+        if(attackList.Count < 1) {
+            isLiving = false;
+            
+            ClearBoard();
+
+            gameResultTxt.gameObject.SetActive(true);
+            gameResultTxt.text = string.Format("( {0} Win )", currentOrder == Piece.White ? "Black" : "White");
+        }
         
         ColoringMouseUp();
     }
@@ -142,7 +165,7 @@ public class GameManager : MonoBehaviour
         return 0;
     }
 
-    private static void ClearBoard(int currentIndex) {
+    private void ClearBoard() {
         for(int i = 0; i < BoardCreator.squareRenderers.Length; i++) {
             if(i != currentIndex) {
                 Color lightColor = BoardCreator.instance.boardTheme.lightTheme.defaultColor;
@@ -154,10 +177,13 @@ public class GameManager : MonoBehaviour
     }
 
     public void ColoringMouseDown() {
-        Color fromLightColor = BoardCreator.instance.boardTheme.lightTheme.moveColor;
-        Color fromDarkColor = BoardCreator.instance.boardTheme.darkTheme.moveColor;
+        Color fromLightColor = BoardCreator.instance.boardTheme.lightTheme.fromColor;
+        Color fromDarkColor = BoardCreator.instance.boardTheme.darkTheme.fromColor;
 
         BoardCreator.squareRenderers[currentIndex].color = Board.IsLightSquare(currentIndex) ? fromLightColor : fromDarkColor;
+
+        if(!Piece.IsEqualColor(Board.squares[currentIndex], currentOrder))
+            return;
 
         foreach(int move in PieceMovement.MakeMove(currentIndex)) {
             bool isLightSquare = Board.IsLightSquare(move);
@@ -170,8 +196,8 @@ public class GameManager : MonoBehaviour
     }
 
     public void ColoringMouseUp() {
-        Color toLightColor = BoardCreator.instance.boardTheme.lightTheme.moveColor;
-        Color toDarkColor = BoardCreator.instance.boardTheme.darkTheme.moveColor;
+        Color toLightColor = BoardCreator.instance.boardTheme.lightTheme.toColor;
+        Color toDarkColor = BoardCreator.instance.boardTheme.darkTheme.toColor;
 
         BoardCreator.squareRenderers[targetIndex].color = Board.IsLightSquare(targetIndex) ? toLightColor : toDarkColor;
     }
