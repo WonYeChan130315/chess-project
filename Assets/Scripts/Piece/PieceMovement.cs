@@ -1,16 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
-public class PieceMovement : MonoBehaviour
+public static class PieceMovement
 {
     public static int u = 8, d = -8, l = -1, r = 1;
 
-    public static bool IsPossibleMove(int currentIndex, int targetIndex) {
-        List<int> possibleMoves = MakeMove(currentIndex);
+    public static bool IsPossibleMove(int currentIndex, int targetIndex, bool checkIgnore = false) {
+        List<int> possibleMoves = MakeMove(currentIndex, checkIgnore);
         foreach(int move in possibleMoves) {
             int possibleMove = move;
-
             if(targetIndex == possibleMove)
                 return true;
         }
@@ -18,10 +16,11 @@ public class PieceMovement : MonoBehaviour
         return false;
     }
 
-    public static List<int> MakeMove(int currentIndex) {
-        int piece = Piece.GetSprite(Board.squares[currentIndex]);
+    public static List<int> MakeMove(int currentIndex, bool checkIgnore = false) {
         List<int> moves = new();
+        CheckKingIndex();
         
+        int piece = Piece.GetSprite(Board.squares[currentIndex]);
         switch(piece) {
             // 일반 기물
             case Piece.King : // 캐슬링, 위, 아래, 오른쪽, 왼쪽, 대각선
@@ -47,7 +46,43 @@ public class PieceMovement : MonoBehaviour
                 break;
         }
 
+        if(!checkIgnore)
+            moves = CheckMoveFix(currentIndex, moves);
+
         return moves;
+    }
+
+    private static List<int> CheckMoveFix(int currentIndex, List<int> moves) {
+        int piece = Board.squares[currentIndex];
+        List<int> fixResult = new();
+
+        foreach(int move in moves) {
+            int targetPiece = Board.squares[move];
+
+            Board.squares[currentIndex] = Piece.None;
+            Board.squares[move] = piece;
+
+            if(!AttackedBySquares.IsCheck()) 
+                fixResult.Add(move);
+
+            Board.squares[currentIndex] = piece;
+            Board.squares[move] = targetPiece;
+        }
+
+        return fixResult;
+    }
+
+    private static void CheckKingIndex() {
+        int kingNum = Piece.King + GameManager.currentOrder;
+
+        for(int square = 0; square < Board.squares.Length; square++) {
+            if(Board.squares[square] == kingNum) {
+                if(GameManager.currentOrder == Piece.White)
+                    GameManager.whiteKingIndex = square;
+                else
+                    GameManager.blackKingIndex = square;
+            }
+        }
     }
 
     private static List<int> GenerateSlidingMove(int currentIndex, int[] directions, int piece = -10) {
@@ -90,6 +125,11 @@ public class PieceMovement : MonoBehaviour
         return false;
     }
 
+    private static bool IsEnpassant(bool isWhite, int currentIndex, int direction) {
+        int[] splitArray = GameManager.GetSplitMove(GameManager.moveList[GameManager.moveList.Count - 1]);
+        return splitArray[0] == Board.NotMatchingPawn(isWhite) && Board.GetRank(splitArray[1]) == Board.NotEnpassantRank(isWhite) && splitArray[2] == currentIndex + direction;
+    }
+
     private static List<int> KingMove(int currentIndex) {
         List<int> moves = new();
 
@@ -126,12 +166,12 @@ public class PieceMovement : MonoBehaviour
 
         // 한칸 앞
         int oneFront = currentIndex + u * Board.PawnDirection(isWhite);
-        if(Board.squares[oneFront] == Piece.None) {
+        if(!Board.IsBoardOut(oneFront) && Board.squares[oneFront] == Piece.None) {
             moves.Add(oneFront);
 
             // 두칸 앞
             int twoFront = currentIndex + u * 2 * Board.PawnDirection(isWhite);
-            if(Board.squares[twoFront] == Piece.None && Board.GetRank(currentIndex) == Board.NotEnpassantRank(!isWhite))
+            if(Board.GetRank(currentIndex) == Board.NotEnpassantRank(!isWhite) && Board.squares[twoFront] == Piece.None)
                 moves.Add(twoFront);
         }
 
@@ -158,11 +198,6 @@ public class PieceMovement : MonoBehaviour
         }
 
         return moves;
-    }
-
-    private static bool IsEnpassant(bool isWhite, int currentIndex, int direction) {
-        int[] splitArray = GameManager.GetSplitMove(GameManager.moveList[GameManager.moveList.Count - 1]);
-        return splitArray[0] == Board.NotMatchingPawn(isWhite) && Board.GetRank(splitArray[1]) == Board.NotEnpassantRank(isWhite) && splitArray[2] == currentIndex + direction;
     }
 
     private static List<int> KnightMove(int currentIndex) {

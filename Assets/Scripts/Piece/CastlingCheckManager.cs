@@ -66,13 +66,13 @@ public static class CastlingCheckManager
         if(condition) 
             return true;
 
-        foreach(string move in GameManager.moveList) {
-            if(Board.squares[color == Piece.White ? OriginKingIndex : Board.GetOtherSide(OriginKingIndex)] != Piece.King + color)
-                return true;
-
-            if(Board.squares[cornerIndex] != Piece.Rook + color)
-                return true;
+        if(Board.squares[color == Piece.White ? OriginKingIndex : Board.GetOtherSide(OriginKingIndex)] != Piece.King + color) {
+            return false;
         }
+
+        if(Board.squares[cornerIndex] != Piece.Rook + color)
+            return true;
+
         return false;
     }
 

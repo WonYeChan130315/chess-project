@@ -14,9 +14,13 @@ public static class Piece {
         return piece < Black;
     }
 
+    public static int GetColor(int piece) {
+        return piece < Black ? White : Black;
+    }
+
     public static bool IsEqualColor(int a, int b) {
         if(a == None || b == None) return false;
-        return IsWhitePiece(a) == IsWhitePiece(b);
+        return GetColor(a) == GetColor(b);
     }
 
     public static int GetSprite(int piece) {

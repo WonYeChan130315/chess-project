@@ -4,6 +4,7 @@ using UnityEngine;
 public class PiecePositionLoad : MonoBehaviour
 {
     public const string startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    // public const string startFEN = "r1bqkbnr/pppp1ppp/n7/4p2Q/4P3/8/PPPP1PPP/RNB1KBNR";
 
     private void Start() {
         LoadPositionFromFen(startFEN);

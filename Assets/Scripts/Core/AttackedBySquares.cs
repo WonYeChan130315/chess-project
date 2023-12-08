@@ -1,24 +1,38 @@
 using System.Collections.Generic;
-using System.Linq;
+using UnityEngine;
 
 public static class AttackedBySquares {
-    public static bool IsAttackedTargetSquare(int targetIndex) {
-        foreach(int attackedSquare in GetAttackedSquares())
-            if(attackedSquare == targetIndex)
-                return true;
+    public static List<int> whiteAttackedSquare = new();
+    public static List<int> blackAttackedSquare = new();
 
-        return false;
+    public static void UpdateCheck() {
+        int color = GameManager.currentOrder;
+        if(color == Piece.White)
+            whiteAttackedSquare.Clear();
+        else
+            blackAttackedSquare.Clear();
+
+        for(int square = 0; square < Board.squares.Length; square++) {
+            if(!Piece.IsEqualColor(Board.squares[square], color)) {
+                if(color == Piece.White)
+                    whiteAttackedSquare.AddRange(PieceMovement.MakeMove(square, true));
+                else
+                    blackAttackedSquare.AddRange(PieceMovement.MakeMove(square, true));
+            }
+        }
     }
 
-    public static List<int> GetAttackedSquares() {
-        int[] squares = Board.squares;
-        List<int> attackedSquares = new();
+    public static bool IsCheck() {
+        UpdateCheck();
 
-        for(int i = 0; i < squares.Length; i++)
-            if(i != Piece.None)
-                attackedSquares.AddRange(PieceMovement.MakeMove(i));
+        int color = GameManager.currentOrder;
+        int kingIndex = color == Piece.White ? GameManager.whiteKingIndex : GameManager.blackKingIndex;
+        List<int> attackedSquares = color == Piece.White ? whiteAttackedSquare : blackAttackedSquare;
 
-        List<int> returnValue = attackedSquares.Distinct().ToList();
-        return returnValue;
+        foreach(int square in attackedSquares)
+            if(square == kingIndex)
+                return true;
+        
+        return false;
     }
 }

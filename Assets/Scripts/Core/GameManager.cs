@@ -6,21 +6,27 @@ public class GameManager : MonoBehaviour
     public static int currentOrder = Piece.White;
     public static List<string> moveList = new();
 
+    public static int whiteKingIndex = 4;
+    public static int blackKingIndex = 60;
+
     private int pieceIndex;
-    private int currentIndex;
-    private int targetIndex;
+    private int currentIndex = -1;
+    private int targetIndex = -1;
     private bool isDragging = false;
     private Transform dragObj;
 
     private void Update() {
-        Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        var mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePosition.z = -3;
 
         RaycastHit2D hit = Physics2D.Raycast(mousePosition, Vector2.zero, Mathf.Infinity, LayerMask.GetMask("Square"));
 
-        if(hit.collider != null && Input.GetMouseButtonDown(0) && !isDragging && hit.transform.GetChild(0).GetComponent<SpriteRenderer>().sprite != null) {
+        if(hit.collider != null && Input.GetMouseButtonDown(0) && !isDragging) {
+            if(hit.transform.GetChild(0).GetComponent<SpriteRenderer>().sprite == null)
+                return;
+            
             isDragging = true;
-            ClearBoard();
+            ClearBoard(currentIndex);
 
             currentIndex = int.Parse(hit.collider.name);
             pieceIndex = Board.squares[currentIndex];
@@ -30,8 +36,8 @@ public class GameManager : MonoBehaviour
             ColoringMouseDown();
         } else if(Input.GetMouseButtonUp(0) && isDragging) {
             isDragging = false;
-            ClearBoard();
-
+            ClearBoard(currentIndex);
+                
             if(PieceMovement.IsPossibleMove(currentIndex, targetIndex) && Piece.IsEqualColor(Board.squares[currentIndex], currentOrder))
                 MovePiece();
 
@@ -41,7 +47,7 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        if(isDragging && hit.collider != null) {
+        if (isDragging && hit.collider != null) {
             targetIndex = int.Parse(hit.collider.name);
             dragObj.position = mousePosition;
         }
@@ -51,19 +57,25 @@ public class GameManager : MonoBehaviour
         // 기물 위치 바꾸기
         BoardCreator.EragePiece(currentIndex);
         BoardCreator.DrawPiece(targetIndex, pieceIndex);
-        
+
         currentOrder = currentOrder == Piece.White ? Piece.Black : Piece.White;
 
-        // 기물이 움직인거 거장
+        // 기물이 움직인거 저장
         string moveStr = string.Format("{0:00}{1:00}{2:00}", Board.squares[targetIndex], currentIndex, targetIndex);
         moveList.Add(moveStr);
-
-        bool isWhite = Piece.IsWhitePiece(GetSplitMove(moveStr)[0]);
 
         // 킹 캐슬링
         CastlingCheckManager.CheckCastling();
 
         // 폰
+        UpdatePawnMove(moveStr);
+        
+        ColoringMouseUp();
+    }
+
+    private void UpdatePawnMove(string moveStr) {
+        bool isWhite = Piece.IsWhitePiece(GetSplitMove(moveStr)[0]);
+
         if(DidEnpasaant(moveStr))
             BoardCreator.EragePiece(GetSplitMove(moveStr)[2] - 8 * Board.PawnDirection(isWhite));
 
@@ -75,19 +87,11 @@ public class GameManager : MonoBehaviour
             bool isQueenSide = castlingIdx == 1;
             int cornerIndex = isQueenSide ? CastlingCheckManager.whiteQueenSideCorner : CastlingCheckManager.whiteKingSideCorner;
 
-            if(isWhite)
-                BoardCreator.EragePiece(cornerIndex);
-            else
-                BoardCreator.EragePiece(Board.GetOtherSide(cornerIndex));
+            if(isWhite) BoardCreator.EragePiece(cornerIndex);
+            else BoardCreator.EragePiece(Board.GetOtherSide(cornerIndex));
 
             BoardCreator.DrawPiece(isQueenSide ? GetSplitMove(moveStr)[2] + 1 : GetSplitMove(moveStr)[2] - 1, isWhite ? Piece.Rook : Piece.Rook + Piece.Black);
         }
-
-        // 4를 킹 인덱스로 바꿔야한다
-        if(AttackedBySquares.IsAttackedTargetSquare(4))
-            print("check");
-
-        ColoringMouseUp();
     }
 
     private bool DidEnpasaant(string moveStr) {
@@ -124,7 +128,7 @@ public class GameManager : MonoBehaviour
         return 0;
     }
 
-    public void ClearBoard() {
+    private static void ClearBoard(int currentIndex) {
         for(int i = 0; i < BoardCreator.squareRenderers.Length; i++) {
             if(i != currentIndex) {
                 Color lightColor = BoardCreator.instance.boardTheme.lightTheme.defaultColor;
@@ -141,18 +145,13 @@ public class GameManager : MonoBehaviour
 
         BoardCreator.squareRenderers[currentIndex].color = Board.IsLightSquare(currentIndex) ? fromLightColor : fromDarkColor;
 
-        if(!Piece.IsEqualColor(Board.squares[currentIndex], currentOrder))
-            return;
+        foreach(int move in PieceMovement.MakeMove(currentIndex)) {
+            bool isLightSquare = Board.IsLightSquare(move);
 
-        for(int i = 0; i < BoardCreator.squareRenderers.Length; i++) {
-            if(PieceMovement.IsPossibleMove(currentIndex, i)) {
-                bool isLightSquare = Board.IsLightSquare(i);
+            Color lightColor = BoardCreator.instance.boardTheme.lightTheme.highlightColor;
+            Color darkColor = BoardCreator.instance.boardTheme.darkTheme.highlightColor;
 
-                Color lightColor = BoardCreator.instance.boardTheme.lightTheme.highlightColor;
-                Color darkColor = BoardCreator.instance.boardTheme.darkTheme.highlightColor;
-
-                BoardCreator.squareRenderers[i].color = isLightSquare ? lightColor : darkColor;
-            }
+            BoardCreator.squareRenderers[move].color = isLightSquare ? lightColor : darkColor;
         }
     }
 
